@@ -71,7 +71,7 @@ const queryClient = new QueryClient();
 
 // Admin route protection component
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
 
   if (loading) {
     return (
@@ -81,7 +81,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user || !user.isAdmin) {
+  if (!user || !isAdmin) {
     return <Navigate to="/login" replace />;
   }
 
