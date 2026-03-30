@@ -12,19 +12,209 @@ import {
   Shield,
   Activity,
   Loader,
-  LucideIcon
+  LucideIcon,
+  Search
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/lib/supabase";
 import { settingsService } from "@/services/settingsService";
 import { useSettings } from "@/contexts/SettingsContext";
 import { toast } from "@/components/ui/use-toast";
 import { fetchMinecraftServerStatus } from "@/services/serverService";
+
+function SeoSettingsTab() {
+  const [seoSettings, setSeoSettings] = useState({
+    title: '',
+    description: '',
+    keywords: '',
+    image: '',
+    twitterHandle: '',
+    facebookAppId: '',
+    googleSiteVerification: ''
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    loadSeoSettings();
+  }, []);
+
+  const loadSeoSettings = async () => {
+    try {
+      const settings = await settingsService.getSeoSettings();
+      setSeoSettings(settings);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to load SEO settings', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveSeoSettings = async () => {
+    setSaving(true);
+    try {
+      await settingsService.updateSeoSettings(seoSettings);
+      toast({ title: 'Success', description: 'SEO settings updated successfully' });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error?.message || 'Failed to update SEO settings', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center py-8">
+            <Loader className="h-6 w-6 animate-spin" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5 text-primary" />
+            SEO Settings
+          </CardTitle>
+          <CardDescription>
+            Manage global SEO settings for the website. These settings will be used as defaults when no page-specific SEO is provided.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="seo-title">Site Title</Label>
+              <Input
+                id="seo-title"
+                value={seoSettings.title}
+                onChange={(e) => setSeoSettings(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="ZCraft Network — #1 Minecraft Lifesteal SMP & Skyblock Server | Join Now"
+              />
+              <p className="text-xs text-muted-foreground">
+                The main title that appears in search results and browser tabs
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="seo-description">Meta Description</Label>
+              <Textarea
+                id="seo-description"
+                value={seoSettings.description}
+                onChange={(e) => setSeoSettings(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Join ZCraft Network, the ultimate Minecraft experience..."
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                Description that appears under the title in search results (150-160 characters recommended)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="seo-keywords">Meta Keywords</Label>
+              <Textarea
+                id="seo-keywords"
+                value={seoSettings.keywords}
+                onChange={(e) => setSeoSettings(prev => ({ ...prev, keywords: e.target.value }))}
+                placeholder="zcraft network, minecraft lifesteal server..."
+                rows={2}
+              />
+              <p className="text-xs text-muted-foreground">
+                Comma-separated keywords for search engines
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="seo-image">Default Image URL</Label>
+              <Input
+                id="seo-image"
+                value={seoSettings.image}
+                onChange={(e) => setSeoSettings(prev => ({ ...prev, image: e.target.value }))}
+                placeholder="/zcraft.png"
+              />
+              <p className="text-xs text-muted-foreground">
+                Default image for social media sharing (1200x630 recommended)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="seo-twitter">Twitter Handle</Label>
+              <Input
+                id="seo-twitter"
+                value={seoSettings.twitterHandle}
+                onChange={(e) => setSeoSettings(prev => ({ ...prev, twitterHandle: e.target.value }))}
+                placeholder="@ZCraftNetwork"
+              />
+              <p className="text-xs text-muted-foreground">
+                Twitter handle for Twitter Card meta tags
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="seo-facebook">Facebook App ID (Optional)</Label>
+              <Input
+                id="seo-facebook"
+                value={seoSettings.facebookAppId}
+                onChange={(e) => setSeoSettings(prev => ({ ...prev, facebookAppId: e.target.value }))}
+                placeholder="123456789012345"
+              />
+              <p className="text-xs text-muted-foreground">
+                Facebook App ID for enhanced Open Graph integration
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="seo-google">Google Site Verification (Optional)</Label>
+              <Input
+                id="seo-google"
+                value={seoSettings.googleSiteVerification}
+                onChange={(e) => setSeoSettings(prev => ({ ...prev, googleSiteVerification: e.target.value }))}
+                placeholder="google-site-verification-code"
+              />
+              <p className="text-xs text-muted-foreground">
+                Google Search Console verification code
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={saveSeoSettings} disabled={saving}>
+              {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+              Save SEO Settings
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>SEO Tips</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li>• Include target keywords naturally in title and description</li>
+            <li>• Keep titles under 60 characters, descriptions under 160</li>
+            <li>• Use high-quality, relevant images for better engagement</li>
+            <li>• Update keywords based on search trends and performance</li>
+            <li>• Test your meta tags with tools like Google's Rich Results Test</li>
+          </ul>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 interface Stat {
   label: string;
@@ -193,6 +383,7 @@ export default function AdminPage() {
           <TabsList className="bg-muted">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="settings">Quick Settings</TabsTrigger>
+            <TabsTrigger value="seo">SEO</TabsTrigger>
             <TabsTrigger value="content">Content</TabsTrigger>
           </TabsList>
 
@@ -330,6 +521,10 @@ export default function AdminPage() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="seo" className="space-y-6">
+            <SeoSettingsTab />
           </TabsContent>
 
           <TabsContent value="content" className="space-y-6">

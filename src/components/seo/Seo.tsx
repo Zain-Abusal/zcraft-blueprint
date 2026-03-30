@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { getSeoSettings } from "@/services/settingsService";
 
 export interface SeoBreadcrumb {
   name: string;
@@ -38,10 +39,10 @@ export interface SeoProps {
 }
 
 export function Seo({
-  title = "ZCraft Network — Premium Minecraft Lifesteal & Survival Servers",
-  description = "Join ZCraft Network, the ultimate Minecraft experience with lifesteal SMP, survival gameplay, factions, economy system, and active community. Best Minecraft server for competitive PvP and social gaming.",
-  keywords = "zcraft, zcraft network, minecraft server, minecraft lifesteal, lifesteal server, minecraft survival, minecraft factions, minecraft economy, minecraft pvp, minecraft smp, best minecraft server, minecraft community server",
-  image = "/zcraft.png",
+  title,
+  description,
+  keywords,
+  image,
   url,
   type = 'website',
   publishedTime,
@@ -58,9 +59,32 @@ export function Seo({
   faq,
 }: SeoProps) {
   const location = useLocation();
+  const [dbSettings, setDbSettings] = useState<any>(null);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+
+  // Load settings from database for defaults
+  useEffect(() => {
+    if (!settingsLoaded) {
+      getSeoSettings().then(settings => {
+        setDbSettings(settings);
+        setSettingsLoaded(true);
+      }).catch(err => {
+        console.error('Failed to load SEO settings:', err);
+        setSettingsLoaded(true); // Still mark as loaded to prevent infinite loading
+      });
+    }
+  }, [settingsLoaded]);
+
+  // Use database settings as fallbacks if available, or hardcoded defaults
+  const finalTitle = title || (dbSettings ? dbSettings.title : "ZCraft Network — #1 Minecraft Lifesteal SMP & Skyblock Server | Join Now");
+  const finalDescription = description || (dbSettings ? dbSettings.description : "Join ZCraft Network, the ultimate Minecraft experience featuring lifesteal SMP, skyblock gameplay, competitive PvP, custom economy, factions, and active community. Best Minecraft server for lifesteal, skyblock, survival, and social gaming.");
+  const finalKeywords = keywords || (dbSettings ? dbSettings.keywords : "zcraft network, minecraft lifesteal server, minecraft skyblock server, lifesteal smp, skyblock server, minecraft server, best minecraft server, minecraft factions, minecraft economy, minecraft pvp, minecraft survival server, minecraft community server, play minecraft lifesteal, play minecraft skyblock, z craft, zcraft mc, zcraft minecraft");
+  const finalImage = image || (dbSettings ? dbSettings.image : "/zcraft.png");
 
   useEffect(() => {
-    if (title) document.title = title;
+    if (!settingsLoaded) return; // Wait for settings to load
+
+    if (finalTitle) document.title = finalTitle;
 
     const setMeta = (name: string, content?: string) => {
       if (!content) return;
@@ -92,8 +116,8 @@ export function Seo({
     const absoluteImage = image?.startsWith('http') ? image : `${origin}${image}`;
 
     // Basic meta tags
-    setMeta("description", description);
-    setMeta("keywords", keywords);
+    setMeta("description", finalDescription);
+    setMeta("keywords", finalKeywords);
     setMeta("author", author);
     setMeta("robots", noindex ? "noindex, nofollow" : "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1");
     setMeta("googlebot", noindex ? "noindex, nofollow" : "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1");
@@ -121,10 +145,10 @@ export function Seo({
     setMeta("viewport", "width=device-width, initial-scale=1.0, viewport-fit=cover");
 
     // Open Graph tags
-    setProperty("og:title", title);
-    setProperty("og:description", description);
+    setProperty("og:title", finalTitle);
+    setProperty("og:description", finalDescription);
     setProperty("og:image", absoluteImage);
-    setProperty("og:image:alt", `${title} - ZCraft Network`);
+    setProperty("og:image:alt", `${finalTitle} - ZCraft Network`);
     setProperty("og:url", absoluteUrl);
     setProperty("og:type", type || 'website');
     setProperty("og:site_name", "ZCraft Network");
@@ -152,12 +176,12 @@ export function Seo({
 
     // Twitter Card tags
     setMeta("twitter:card", "summary_large_image");
-    setMeta("twitter:site", "@ZCraftNetwork");
-    setMeta("twitter:creator", "@ZCraftNetwork");
-    setMeta("twitter:title", title);
-    setMeta("twitter:description", description);
+    setMeta("twitter:site", dbSettings?.twitterHandle || "@ZCraftNetwork");
+    setMeta("twitter:creator", dbSettings?.twitterHandle || "@ZCraftNetwork");
+    setMeta("twitter:title", finalTitle);
+    setMeta("twitter:description", finalDescription);
     setMeta("twitter:image", absoluteImage);
-    setMeta("twitter:image:alt", `${title} - ZCraft Network`);
+    setMeta("twitter:image:alt", `${finalTitle} - ZCraft Network`);
 
     // Additional SEO tags for better ranking
     setMeta("theme-color", "#3b82f6");
@@ -197,9 +221,15 @@ export function Seo({
     }
 
     // Google site verification (if configured)
-    const googleVerification = (import.meta.env.VITE_GOOGLE_SITE_VERIFICATION || import.meta.env.GOOGLE_SITE_VERIFICATION) as string | undefined;
+    const googleVerification = dbSettings?.googleSiteVerification || (import.meta.env.VITE_GOOGLE_SITE_VERIFICATION || import.meta.env.GOOGLE_SITE_VERIFICATION) as string | undefined;
     if (googleVerification) {
       setMeta('google-site-verification', googleVerification);
+    }
+
+    // Facebook App ID (if configured)
+    const facebookAppId = dbSettings?.facebookAppId;
+    if (facebookAppId) {
+      setProperty('fb:app_id', facebookAppId);
     }
 
     // Performance hints
@@ -265,7 +295,7 @@ export function Seo({
       name: "ZCraft Network",
       url: absoluteUrl,
       logo: absoluteImage,
-      description: "Premium Minecraft server network featuring lifesteal SMP, survival gameplay, and active community",
+      description: "Premium Minecraft server network featuring lifesteal SMP, skyblock gameplay, survival, and active community",
       foundingDate: "2024",
       sameAs: [
         "https://discord.gg/zcraft",
@@ -296,7 +326,7 @@ export function Seo({
       url: origin,
       name: "ZCraft Network",
       alternateName: "ZCraft",
-      description: "Premium Minecraft Lifesteal & Survival Servers",
+      description: "Premium Minecraft Lifesteal SMP & Skyblock Servers",
       publisher: {
         "@type": "Organization",
         name: "ZCraft Network",
@@ -314,8 +344,8 @@ export function Seo({
 
     ld.webPage = {
       "@type": "WebPage",
-      name: title,
-      description,
+      name: finalTitle,
+      description: finalDescription,
       url: absoluteUrl,
       isPartOf: {
         "@type": "WebSite",
@@ -363,7 +393,7 @@ export function Seo({
       ld.game = {
         "@type": "VideoGame",
         name: "ZCraft Network - Minecraft Server",
-        description: "Minecraft server with lifesteal, survival, and community features",
+        description: "Minecraft server with lifesteal SMP, skyblock gameplay, survival, and community features",
         genre: ["Action", "Adventure", "Simulation"],
         gamePlatform: "PC",
         operatingSystem: "Windows, macOS, Linux",
@@ -449,10 +479,10 @@ export function Seo({
     setPreload('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap', 'style');
 
   }, [
-    title,
-    description,
-    keywords,
-    image,
+    finalTitle,
+    finalDescription,
+    finalKeywords,
+    finalImage,
     url,
     type,
     publishedTime,
@@ -469,6 +499,8 @@ export function Seo({
     faq,
     location.pathname,
     location.search,
+    settingsLoaded,
+    dbSettings,
   ]);
 
   return null;

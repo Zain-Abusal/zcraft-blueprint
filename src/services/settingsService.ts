@@ -99,6 +99,79 @@ export async function deleteSetting(key: string) {
   }
 }
 
+// SEO-specific functions
+export interface SeoSettings {
+  title: string;
+  description: string;
+  keywords: string;
+  image: string;
+  twitterHandle: string;
+  facebookAppId?: string;
+  googleSiteVerification?: string;
+}
+
+export async function getSeoSettings(): Promise<SeoSettings> {
+  const [
+    title,
+    description,
+    keywords,
+    image,
+    twitterHandle,
+    facebookAppId,
+    googleSiteVerification
+  ] = await Promise.all([
+    getSetting('seo_title'),
+    getSetting('seo_description'),
+    getSetting('seo_keywords'),
+    getSetting('seo_image'),
+    getSetting('seo_twitter_handle'),
+    getSetting('seo_facebook_app_id'),
+    getSetting('seo_google_site_verification')
+  ]);
+
+  return {
+    title: title || "ZCraft Network — #1 Minecraft Lifesteal SMP & Skyblock Server | Join Now",
+    description: description || "Join ZCraft Network, the ultimate Minecraft experience featuring lifesteal SMP, skyblock gameplay, competitive PvP, custom economy, factions, and active community. Best Minecraft server for lifesteal, skyblock, survival, and social gaming.",
+    keywords: keywords || "zcraft network, minecraft lifesteal server, minecraft skyblock server, lifesteal smp, skyblock server, minecraft server, best minecraft server, minecraft factions, minecraft economy, minecraft pvp, minecraft survival server, minecraft community server, play minecraft lifesteal, play minecraft skyblock, z craft, zcraft mc, zcraft minecraft",
+    image: image || "/zcraft.png",
+    twitterHandle: twitterHandle || "@ZCraftNetwork",
+    facebookAppId: facebookAppId || undefined,
+    googleSiteVerification: googleSiteVerification || undefined
+  };
+}
+
+export async function updateSeoSettings(settings: Partial<SeoSettings>) {
+  const updates = [];
+
+  if (settings.title !== undefined) {
+    updates.push(setSetting('seo_title', settings.title));
+  }
+  if (settings.description !== undefined) {
+    updates.push(setSetting('seo_description', settings.description));
+  }
+  if (settings.keywords !== undefined) {
+    updates.push(setSetting('seo_keywords', settings.keywords));
+  }
+  if (settings.image !== undefined) {
+    updates.push(setSetting('seo_image', settings.image));
+  }
+  if (settings.twitterHandle !== undefined) {
+    updates.push(setSetting('seo_twitter_handle', settings.twitterHandle));
+  }
+  if (settings.facebookAppId !== undefined && settings.facebookAppId) {
+    updates.push(setSetting('seo_facebook_app_id', settings.facebookAppId));
+  } else if (settings.facebookAppId === '') {
+    updates.push(deleteSetting('seo_facebook_app_id'));
+  }
+  if (settings.googleSiteVerification !== undefined && settings.googleSiteVerification) {
+    updates.push(setSetting('seo_google_site_verification', settings.googleSiteVerification));
+  } else if (settings.googleSiteVerification === '') {
+    updates.push(deleteSetting('seo_google_site_verification'));
+  }
+
+  await Promise.all(updates);
+}
+
 export const settingsService = {
   getSettings,
   getSetting,
